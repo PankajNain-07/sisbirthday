@@ -1,748 +1,742 @@
-/**
- * ==========================================================================
- * HAPPY BIRTHDAY REEL - INTERACTIVE JAVASCRIPT ENGINE
- * Mobile-first Instagram Reel Experience with Scroll-Snap, Confetti,
- * Audio Engine, 3D Tilt, Double-Tap Hearts & Modals
- * ==========================================================================
- */
+/* ================================================================
+   BIRTHDAY EXPERIENCE — Main JavaScript Controller
+   Architecture: Modules → Init → Event Handlers → Animation Engine
+   ================================================================ */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // --- DOM ELEMENT REFERENCES ---
-  const startOverlay = document.getElementById('startOverlay');
-  const startBtn = document.getElementById('startBtn');
-  const reelContainer = document.getElementById('reelContainer');
-  const sections = document.querySelectorAll('.reel-section');
-  const progressSegments = document.querySelectorAll('.progress-segment');
-  
-  // Audio Elements
-  const bgMusic = document.getElementById('bgMusic');
-  const audioToggleBtn = document.getElementById('audioToggleBtn');
-  const audioStatusText = document.getElementById('audioStatusText');
-  const vinylDisc = document.getElementById('vinylDisc');
+(function () {
+  'use strict';
 
-  // Password Protection
-  const passwordSection = document.getElementById('passwordSection');
-  const passwordInput = document.getElementById('passwordInput');
-  const verifyPasswordBtn = document.getElementById('verifyPasswordBtn');
-  const passwordError = document.getElementById('passwordError');
-  const CORRECT_PASSWORD = '27082000';
-  let passwordVerified = false;
+  /* ================================================================
+     1. DOM ELEMENT REFERENCES
+     ================================================================ */
+  const DOM = {
+    // Cursor
+    cursorGlow: document.getElementById('cursorGlow'),
+    cursorTrail: document.getElementById('cursorTrail'),
 
-  // Interaction Buttons
-  const likeActionBtn = document.getElementById('likeActionBtn');
-  const likeCounter = document.getElementById('likeCounter');
-  const doubleTapHeart = document.getElementById('doubleTapHeart');
-  const commentActionBtn = document.getElementById('commentActionBtn');
-  const shareActionBtn = document.getElementById('shareActionBtn');
-  const giftActionBtn = document.getElementById('giftActionBtn');
-  const tapForGiftBtn = document.getElementById('tapForGiftBtn');
-  const secretCard = document.getElementById('secretCard');
-  const secretOverlay = document.getElementById('secretOverlay');
+    // Particle Canvas
+    particleCanvas: document.getElementById('particleCanvas'),
 
-  // Modals & Drawers
-  const giftModal = document.getElementById('giftModal');
-  const closeGiftModalBtn = document.getElementById('closeGiftModalBtn');
-  const giftModalBackdrop = document.getElementById('giftModalBackdrop');
-  const claimGiftBtn = document.getElementById('claimGiftBtn');
-  
-  const commentsModal = document.getElementById('commentsModal');
-  const closeCommentsModalBtn = document.getElementById('closeCommentsModalBtn');
-  const commentsModalBackdrop = document.getElementById('commentsModalBackdrop');
-  const commentForm = document.getElementById('commentForm');
-  const newCommentInput = document.getElementById('newCommentInput');
-  const commentsList = document.getElementById('commentsList');
-  const commentCounter = document.getElementById('commentCounter');
+    // Overlay
+    startOverlay: document.getElementById('startOverlay'),
+    startBtn: document.getElementById('startBtn'),
 
-  // Toasts & Canvas
-  const toastNotification = document.getElementById('toastNotification');
-  const toastMessage = document.getElementById('toastMessage');
-  const confettiCanvas = document.getElementById('confettiCanvas');
-  const flyingHeartsContainer = document.getElementById('flyingHeartsContainer');
-  const polaroidCard = document.getElementById('polaroidCard');
-  const bubbleBtns = document.querySelectorAll('.bubble-btn');
+    // Main Content
+    mainContent: document.getElementById('mainContent'),
 
-  // State Variables
-  let isAudioPlaying = false;
-  let isLiked = false;
-  let likeCountNum = 100000;
-  let synthAudioCtx = null;
-  let synthInterval = null;
-  let lastTapTime = 0;
+    // Hero
+    heroSection: document.getElementById('heroSection'),
+    heroBanner: document.getElementById('heroBanner'),
+    balloonsContainer: document.getElementById('balloonsContainer'),
 
-  /* ==========================================================================
-     1. WEB AUDIO API SYNTHESIZER (ZERO-DEPENDENCY FALLBACK BGM)
-     If no external MP3 is supplied or audio fails, plays a cheerful birthday melody!
-     ========================================================================== */
-  function initSynthAudio() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      synthAudioCtx = new AudioContext();
-      
-      // Cheerful birthday chord sequence (frequencies in Hz)
-      const notes = [
-        261.63, 261.63, 293.66, 261.63, 349.23, 329.63, // Happy Birthday phrase 1
-        261.63, 261.63, 293.66, 261.63, 392.00, 349.23, // phrase 2
-        261.63, 261.63, 523.25, 440.00, 349.23, 329.63, 293.66, // phrase 3
-        466.16, 466.16, 440.00, 349.23, 392.00, 349.23  // phrase 4
-      ];
-      const durations = [
-        0.3, 0.3, 0.6, 0.6, 0.6, 1.2,
-        0.3, 0.3, 0.6, 0.6, 0.6, 1.2,
-        0.3, 0.3, 0.6, 0.6, 0.6, 0.6, 1.2,
-        0.3, 0.3, 0.6, 0.6, 0.6, 1.4
-      ];
-      
-      let noteIndex = 0;
-      function playNextNote() {
-        if (!isAudioPlaying || !synthAudioCtx) return;
-        if (synthAudioCtx.state === 'suspended') {
-          synthAudioCtx.resume();
-        }
+    // Gallery
+    gallerySection: document.getElementById('gallerySection'),
+    galleryGrid: document.getElementById('galleryGrid'),
+    photoCards: null, // populated after DOM ready
 
-        const osc = synthAudioCtx.createOscillator();
-        const gain = synthAudioCtx.createGain();
-        
-        // Warm soft synth sound
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(notes[noteIndex], synthAudioCtx.currentTime);
+    // Wish
+    wishSection: document.getElementById('wishSection'),
+    wishCard: document.getElementById('wishCard'),
+    confettiBtn: document.getElementById('confettiBtn'),
 
-        // Envelope
-        gain.gain.setValueAtTime(0.001, synthAudioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.18, synthAudioCtx.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, synthAudioCtx.currentTime + durations[noteIndex]);
+    // Music Player
+    musicPlayer: document.getElementById('musicPlayer'),
+    bgMusic: document.getElementById('bgMusic'),
+    playPauseBtn: document.getElementById('playPauseBtn'),
+    playIcon: document.getElementById('playIcon'),
+    pauseIcon: document.getElementById('pauseIcon'),
+    volumeSlider: document.getElementById('volumeSlider'),
 
-        osc.connect(gain);
-        gain.connect(synthAudioCtx.destination);
-
-        osc.start();
-        osc.stop(synthAudioCtx.currentTime + durations[noteIndex]);
-
-        const nextDelay = (durations[noteIndex] * 750);
-        noteIndex = (noteIndex + 1) % notes.length;
-        synthInterval = setTimeout(playNextNote, nextDelay);
-      }
-
-      playNextNote();
-    } catch (e) {
-      console.log('Web Audio Synth initialization note:', e);
-    }
-  }
-
-  // Celebratory Sound Chime Fanfare for Gift / Confetti
-  function playFanfareChime() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = synthAudioCtx || new AudioContext();
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const chords = [523.25, 659.25, 783.99, 1046.50]; // C Major high arpeggio
-      chords.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
-
-        gain.gain.setValueAtTime(0.01, ctx.currentTime + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + idx * 0.08 + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.6);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + idx * 0.08);
-        osc.stop(ctx.currentTime + idx * 0.08 + 0.7);
-      });
-    } catch (e) {}
-  }
-
-  /* ==========================================================================
-     2. AUDIO CONTROLLER & PLAYBACK MANAGEMENT
-     ========================================================================== */
-  function startBackgroundMusic() {
-    isAudioPlaying = true;
-    updateAudioUI(true);
-
-    if (bgMusic) {
-      bgMusic.volume = 0.65;
-      const playPromise = bgMusic.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // If custom MP3 is not found / blocked, fallback to internal Web Audio synth
-          initSynthAudio();
-        });
-      }
-    } else {
-      initSynthAudio();
-    }
-  }
-
-  function toggleAudio() {
-    if (isAudioPlaying) {
-      isAudioPlaying = false;
-      if (bgMusic) bgMusic.pause();
-      if (synthInterval) clearTimeout(synthInterval);
-      updateAudioUI(false);
-    } else {
-      isAudioPlaying = true;
-      if (bgMusic && bgMusic.src) {
-        bgMusic.play().catch(() => initSynthAudio());
-      } else {
-        initSynthAudio();
-      }
-      updateAudioUI(true);
-    }
-  }
-
-  function updateAudioUI(playing) {
-    if (playing) {
-      audioToggleBtn.classList.add('audio-playing');
-      audioStatusText.textContent = 'Audio On';
-      if (vinylDisc) vinylDisc.classList.add('spinning');
-    } else {
-      audioToggleBtn.classList.remove('audio-playing');
-      audioStatusText.textContent = 'Muted';
-      if (vinylDisc) vinylDisc.classList.remove('spinning');
-    }
-  }
-
-  audioToggleBtn.addEventListener('click', toggleAudio);
-
-  /* ==========================================================================
-     2.5. PASSWORD PROTECTION (ACCESS GATE) - MANDATORY VERIFICATION
-     ========================================================================== */
-  function verifyPassword() {
-    const inputValue = passwordInput.value.trim();
-    
-    if (inputValue === CORRECT_PASSWORD) {
-      passwordVerified = true;
-      passwordError.textContent = '';
-      passwordSection.style.display = 'none';
-      startBtn.style.display = 'flex';
-      startBtn.classList.remove('hidden');
-      // Auto-focus the start button
-      setTimeout(() => startBtn.focus(), 300);
-      showToast('✅ Access Granted! Ready to celebrate? 🎉');
-    } else {
-      passwordError.textContent = '❌ Incorrect code. Try again!';
-      passwordInput.value = '';
-      passwordInput.focus();
-    }
-  }
-
-  // Prevent access without password
-  function preventUnauthorizedAccess(e) {
-    if (!passwordVerified) {
-      e.preventDefault();
-      e.stopPropagation();
-      passwordInput.focus();
-      showToast('🔒 Enter the access code first!');
-      return false;
-    }
-  }
-
-  // Disable all reel interactions until password verified
-  reelContainer.addEventListener('click', preventUnauthorizedAccess, true);
-  reelContainer.addEventListener('scroll', preventUnauthorizedAccess, true);
-  reelContainer.addEventListener('touchstart', preventUnauthorizedAccess, true);
-
-  verifyPasswordBtn.addEventListener('click', verifyPassword);
-  passwordInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      verifyPassword();
-    }
-  });
-
-  /* ==========================================================================
-     3. START OVERLAY (AUTOPLAY UNLOCK & ENTRY)
-     ========================================================================== */
-  startBtn.addEventListener('click', () => {
-    startOverlay.classList.add('hidden');
-    startBackgroundMusic();
-    triggerMiniHearts(window.innerWidth / 2, window.innerHeight / 2, 8);
-    showToast('✨ Welcome to your Birthday Reel! Swipe down to explore ⬇️');
-  });
-
-  /* ==========================================================================
-     4. SCROLL-SNAP OBSERVER & PROGRESS BAR TRACKER
-     ========================================================================== */
-  const sectionObserverOptions = {
-    root: reelContainer,
-    threshold: 0.55
+    // Confetti Canvas
+    confettiCanvas: document.getElementById('confettiCanvas'),
   };
 
-  const sectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const index = parseInt(entry.target.getAttribute('data-index'), 10);
-        updateProgressBar(index);
-        
-        // Trigger entrance animations for elements inside the section
-        const animElements = entry.target.querySelectorAll('.animate-on-scroll');
-        animElements.forEach(el => el.classList.add('visible'));
+  /* ================================================================
+     2. STATE
+     ================================================================ */
+  const state = {
+    isPlaying: false,
+    mouseX: 0,
+    mouseY: 0,
+    particlesInitialized: false,
+  };
 
-        // Auto trigger celebratory sparks on final screen
-        if (index === 3) {
-          triggerConfettiBurst(25);
-        }
-      }
-    });
-  }, sectionObserverOptions);
+  /* ================================================================
+     3. CUSTOM CURSOR (Desktop Only)
+     ================================================================ */
+  function initCursor() {
+    // Skip on touch devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
 
-  sections.forEach(section => sectionObserver.observe(section));
+    document.addEventListener('mousemove', (e) => {
+      state.mouseX = e.clientX;
+      state.mouseY = e.clientY;
 
-  function updateProgressBar(activeIndex) {
-    progressSegments.forEach((segment, idx) => {
-      segment.classList.remove('active', 'completed');
-      if (idx < activeIndex) {
-        segment.classList.add('completed');
-      } else if (idx === activeIndex) {
-        segment.classList.add('active');
-      }
-    });
-  }
+      // Move cursor glow immediately
+      DOM.cursorGlow.style.left = e.clientX + 'px';
+      DOM.cursorGlow.style.top = e.clientY + 'px';
 
-  /* ==========================================================================
-     5. LIKE BUTTON & DOUBLE-TAP TO LIKE INTERACTION
-     ========================================================================== */
-  function toggleLike(e) {
-    if (e) e.stopPropagation();
-    isLiked = !isLiked;
-    const heartBtn = likeActionBtn.querySelector('.action-btn');
-
-    if (isLiked) {
-      heartBtn.classList.add('liked');
-      likeCountNum += 1;
-      likeCounter.textContent = formatCount(likeCountNum);
-      
-      const rect = heartBtn.getBoundingClientRect();
-      triggerMiniHearts(rect.left + 20, rect.top + 20, 6);
-      showToast('💖 You liked this birthday memory!');
-    } else {
-      heartBtn.classList.remove('liked');
-      likeCountNum -= 1;
-      likeCounter.textContent = formatCount(likeCountNum);
-    }
-  }
-
-  likeActionBtn.addEventListener('click', toggleLike);
-
-  function formatCount(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-  }
-
-  // Double-tap anywhere on the reel to like & pop large heart
-  reelContainer.addEventListener('click', (e) => {
-    // Ignore clicks on buttons, forms, or links
-    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.app-modal')) {
-      return;
-    }
-
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTapTime;
-    
-    if (tapLength < 320 && tapLength > 0) {
-      // Double tap detected!
-      if (!isLiked) toggleLike();
-      
-      // Trigger center heart animation
-      doubleTapHeart.classList.remove('animate');
-      void doubleTapHeart.offsetWidth; // Force reflow
-      doubleTapHeart.classList.add('animate');
-      
-      // Spawn floating hearts at touch/click coordinates
-      triggerMiniHearts(e.clientX, e.clientY, 8);
-    }
-    lastTapTime = currentTime;
-  });
-
-  /* ==========================================================================
-     6. FLOATING MINI HEARTS SPAWNER
-     ========================================================================== */
-  function triggerMiniHearts(x, y, count = 5) {
-    const emojis = ['💖', '❤️', '✨', '🌸', '👑', '🎉'];
-    for (let i = 0; i < count; i++) {
-      const heart = document.createElement('div');
-      heart.className = 'flying-heart-particle';
-      heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      
-      const offsetX = (Math.random() - 0.5) * 80;
-      const offsetY = (Math.random() - 0.5) * 60;
-      
-      heart.style.left = `${x + offsetX}px`;
-      heart.style.top = `${y + offsetY}px`;
-      
-      flyingHeartsContainer.appendChild(heart);
-      
-      setTimeout(() => {
-        if (heart && heart.parentNode) {
-          heart.parentNode.removeChild(heart);
-        }
-      }, 1600);
-    }
-  }
-
-  /* ==========================================================================
-     7. SCREEN 2: 3D POLAROID TILT & INTERACTIVE PHOTO CYCLING
-     ========================================================================== */
-  const photoGallery = [
-    { src: 'assets/images/sofa_lounge.jpg', caption: 'Main Character Energy & Cozy Vibes 🌸', tag: '#BirthdayQueen', badge: 'PHOTO 1 OF 5' },
-    { src: 'assets/images/sister_solo.jpg', caption: 'Stunning Queen in Black Elegance 🖤✨', tag: '#SlayAllDay', badge: 'PHOTO 2 OF 5' },
-    { src: 'assets/images/mall_chandelier.jpg', caption: 'Under The Grand Chandelier ✨', tag: '#PartnerInCrime', badge: 'PHOTO 3 OF 5' },
-    { src: 'assets/images/night_fountain.jpg', caption: 'Night Lights & Endless Laughs 🌙', tag: '#ForeverBond', badge: 'PHOTO 4 OF 5' },
-    { src: 'assets/images/family_mall.jpg', caption: 'Family Moments & Sweet Love 💖', tag: '#Blessed', badge: 'PHOTO 5 OF 5' }
-  ];
-
-  let currentPhotoIdx = 0;
-  const polaroidMainImg = document.getElementById('polaroidMainImg');
-  const polaroidCaption = document.getElementById('polaroidCaption');
-  const polaroidTag = document.getElementById('polaroidTag');
-  const polaroidBadge = document.getElementById('polaroidBadge');
-  const polaroidDots = document.querySelectorAll('#polaroidDots .p-dot');
-
-  function switchPolaroidPhoto(idx) {
-    currentPhotoIdx = (idx !== undefined) ? idx : (currentPhotoIdx + 1) % photoGallery.length;
-    const photo = photoGallery[currentPhotoIdx];
-    
-    if (polaroidMainImg) {
-      polaroidMainImg.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-      polaroidMainImg.style.opacity = '0';
-      polaroidMainImg.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        polaroidMainImg.src = photo.src;
-        if (polaroidCaption) polaroidCaption.textContent = photo.caption;
-        if (polaroidTag) polaroidTag.textContent = photo.tag;
-        if (polaroidBadge) polaroidBadge.textContent = photo.badge;
-        polaroidMainImg.style.opacity = '1';
-        polaroidMainImg.style.transform = 'scale(1)';
-      }, 180);
-    }
-    
-    polaroidDots.forEach((dot, dIdx) => {
-      dot.classList.toggle('active', dIdx === currentPhotoIdx);
+      // Trail follows with slight delay (via CSS transition)
+      DOM.cursorTrail.style.left = e.clientX + 'px';
+      DOM.cursorTrail.style.top = e.clientY + 'px';
     });
 
-    triggerMiniHearts(window.innerWidth / 2, window.innerHeight * 0.4, 5);
-  }
-
-  if (polaroidCard) {
-    polaroidCard.addEventListener('click', (e) => {
-      switchPolaroidPhoto();
-    });
-
-    polaroidCard.addEventListener('mousemove', (e) => {
-      const rect = polaroidCard.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      
-      const rotateX = -(y / rect.height) * 20;
-      const rotateY = (x / rect.width) * 20;
-      
-      const card = polaroidCard.querySelector('.polaroid-card');
-      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.04)`;
-    });
-
-    polaroidCard.addEventListener('mouseleave', () => {
-      const card = polaroidCard.querySelector('.polaroid-card');
-      card.style.transform = `rotate(-3deg)`;
-    });
-  }
-
-  polaroidDots.forEach((dot) => {
-    dot.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = parseInt(dot.getAttribute('data-idx'), 10);
-      switchPolaroidPhoto(idx);
-    });
-  });
-
-  /* ==========================================================================
-     8. SCREEN 3: SECRET COMPLIMENT SCRATCH/TAP REVEAL
-     ========================================================================== */
-  if (secretCard && secretOverlay) {
-    secretCard.addEventListener('click', () => {
-      if (!secretOverlay.classList.contains('revealed')) {
-        secretOverlay.classList.add('revealed');
-        playFanfareChime();
-        triggerConfettiBurst(20);
-        showToast('💌 Compliment Unlocked! #BestSisterEver');
-      }
-    });
-  }
-
-  /* ==========================================================================
-     9. CANVAS CONFETTI EXPLOSION SYSTEM (ZERO DEPENDENCIES)
-     ========================================================================== */
-  const ctx = confettiCanvas.getContext('2d');
-  let confettiParticles = [];
-  let isConfettiRunning = false;
-
-  function resizeCanvas() {
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  const confettiColors = ['#ff2a7a', '#833ab4', '#fcb045', '#00f2fe', '#ffd700', '#ffffff', '#ff6b81'];
-
-  class ConfettiParticle {
-    constructor(x, y) {
-      this.x = x || Math.random() * confettiCanvas.width;
-      this.y = y || confettiCanvas.height * 0.75;
-      this.size = Math.random() * 8 + 6;
-      this.color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-      
-      // Explosion velocities
-      const angle = Math.random() * Math.PI * 2;
-      const velocity = Math.random() * 12 + 6;
-      this.vx = Math.cos(angle) * velocity;
-      this.vy = Math.sin(angle) * velocity - Math.random() * 8;
-      
-      this.gravity = 0.35;
-      this.friction = 0.96;
-      this.opacity = 1;
-      this.rotation = Math.random() * 360;
-      this.rotationSpeed = (Math.random() - 0.5) * 12;
-      this.shape = Math.random() > 0.4 ? 'rect' : 'circle';
-    }
-
-    update() {
-      this.vx *= this.friction;
-      this.vy *= this.friction;
-      this.vy += this.gravity;
-      this.x += this.vx;
-      this.y += this.vy;
-      this.rotation += this.rotationSpeed;
-      this.opacity -= 0.009;
-    }
-
-    draw() {
-      ctx.save();
-      ctx.globalAlpha = Math.max(this.opacity, 0);
-      ctx.translate(this.x, this.y);
-      ctx.rotate((this.rotation * Math.PI) / 180);
-      ctx.fillStyle = this.color;
-
-      if (this.shape === 'rect') {
-        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.6);
-      } else {
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-  }
-
-  function renderConfetti() {
-    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-    
-    for (let i = confettiParticles.length - 1; i >= 0; i--) {
-      const p = confettiParticles[i];
-      p.update();
-      p.draw();
-      if (p.opacity <= 0 || p.y > confettiCanvas.height + 20) {
-        confettiParticles.splice(i, 1);
-      }
-    }
-
-    if (confettiParticles.length > 0) {
-      requestAnimationFrame(renderConfetti);
-    } else {
-      isConfettiRunning = false;
-      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-    }
-  }
-
-  function triggerConfettiBurst(count = 120, x, y) {
-    const burstX = x !== undefined ? x : confettiCanvas.width / 2;
-    const burstY = y !== undefined ? y : confettiCanvas.height * 0.6;
-    
-    for (let i = 0; i < count; i++) {
-      confettiParticles.push(new ConfettiParticle(burstX, burstY));
-    }
-
-    if (!isConfettiRunning) {
-      isConfettiRunning = true;
-      renderConfetti();
-    }
-  }
-
-  /* ==========================================================================
-     10. SCREEN 4: GIFT EXPLOSION & MODAL POPUP
-     ========================================================================== */
-  function openGiftExperience(e) {
-    if (e) e.stopPropagation();
-    playFanfareChime();
-    
-    // Dual cannon confetti explosion
-    triggerConfettiBurst(80, window.innerWidth * 0.3, window.innerHeight * 0.7);
-    triggerConfettiBurst(80, window.innerWidth * 0.7, window.innerHeight * 0.7);
-    
-    // Open Gift Box Modal
-    giftModal.classList.add('show');
-    giftModal.setAttribute('aria-hidden', 'false');
-  }
-
-  if (tapForGiftBtn) tapForGiftBtn.addEventListener('click', openGiftExperience);
-  if (giftActionBtn) giftActionBtn.addEventListener('click', openGiftExperience);
-
-  function closeGiftModal() {
-    giftModal.classList.remove('show');
-    giftModal.setAttribute('aria-hidden', 'true');
-  }
-
-  if (closeGiftModalBtn) closeGiftModalBtn.addEventListener('click', closeGiftModal);
-  if (giftModalBackdrop) giftModalBackdrop.addEventListener('click', closeGiftModal);
-  if (claimGiftBtn) {
-    claimGiftBtn.addEventListener('click', () => {
-      closeGiftModal();
-      triggerConfettiBurst(120);
-      showToast('🎉 Birthday Gift Claimed! Enjoy your special day!');
-    });
-  }
-
-  /* ==========================================================================
-     11. COMMENTS DRAWER & DYNAMIC COMMENTING
-     ========================================================================== */
-  function openCommentsModal() {
-    commentsModal.classList.add('show');
-    commentsModal.setAttribute('aria-hidden', 'false');
-  }
-
-  function closeCommentsModal() {
-    commentsModal.classList.remove('show');
-    commentsModal.setAttribute('aria-hidden', 'true');
-  }
-
-  if (commentActionBtn) commentActionBtn.addEventListener('click', openCommentsModal);
-  if (closeCommentsModalBtn) closeCommentsModalBtn.addEventListener('click', closeCommentsModal);
-  if (commentsModalBackdrop) commentsModalBackdrop.addEventListener('click', closeCommentsModal);
-
-  if (commentForm) {
-    commentForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = newCommentInput.value.trim();
-      if (!text) return;
-
-      const newComment = document.createElement('div');
-      newComment.className = 'comment-item';
-      newComment.innerHTML = `
-        <img src="assets/images/sister_solo.jpg" alt="You" class="comment-avatar">
-        <div class="comment-content">
-          <div class="comment-user">
-            <strong>you</strong>
-            <span class="comment-time">Just now</span>
-          </div>
-          <p class="comment-body">${escapeHTML(text)}</p>
-        </div>
-        <button class="comment-like-btn">❤️</button>
-      `;
-
-      commentsList.prepend(newComment);
-      newCommentInput.value = '';
-      
-      // Increment comment count
-      const currentComments = parseInt(commentCounter.textContent, 10) || 24;
-      commentCounter.textContent = (currentComments + 1).toString();
-      
-      triggerMiniHearts(window.innerWidth / 2, window.innerHeight * 0.8, 6);
-      showToast('💬 Your comment was posted!');
-    });
-  }
-
-  function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    // Expand cursor on interactive elements
+    const interactiveElements = document.querySelectorAll(
+      'button, a, .photo-card, .btn-confetti, input[type="range"]'
     );
-  }
-
-  /* ==========================================================================
-     12. SHARE BUTTON & WEB SHARE API
-     ========================================================================== */
-  if (shareActionBtn) {
-    shareActionBtn.addEventListener('click', async () => {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "Happy Birthday Sis! ✨",
-            text: "Check out this special birthday reel created just for you! 🎂💖",
-            url: window.location.href
-          });
-        } catch (err) {
-          copyLinkFallback();
-        }
-      } else {
-        copyLinkFallback();
-      }
+    interactiveElements.forEach((el) => {
+      el.addEventListener('mouseenter', () => DOM.cursorGlow.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => DOM.cursorGlow.classList.remove('hovering'));
     });
   }
 
-  function copyLinkFallback() {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        showToast('🔗 Link copied to clipboard! Share it anywhere!');
-      }).catch(() => {
-        showToast('💌 Share this link with family & friends!');
+  /* ================================================================
+     4. THREE.JS PARTICLE SYSTEM — Floating WebGL Particles
+     ================================================================ */
+  function initParticles() {
+    if (state.particlesInitialized) return;
+    state.particlesInitialized = true;
+
+    const canvas = DOM.particleCanvas;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Create particle geometry
+    const particleCount = window.innerWidth < 600 ? 500 : 1200;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+
+    // Palette colors for particles (converted to 0-1 range)
+    const palette = [
+      [1.0, 0.42, 0.615],   // Pink #FF6B9D
+      [0.753, 0.522, 0.988], // Purple #C084FC
+      [0.404, 0.91, 0.976],  // Cyan #67E8F9
+      [0.988, 0.827, 0.302], // Gold #FCD34D
+      [0.204, 0.831, 0.6],   // Green #34D399
+    ];
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      positions[i3] = (Math.random() - 0.5) * 15;
+      positions[i3 + 1] = (Math.random() - 0.5) * 15;
+      positions[i3 + 2] = (Math.random() - 0.5) * 10;
+
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      colors[i3] = color[0];
+      colors[i3 + 1] = color[1];
+      colors[i3 + 2] = color[2];
+
+      sizes[i] = Math.random() * 3 + 0.5;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    // Simple particle material
+    const material = new THREE.PointsMaterial({
+      size: 0.04,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+
+    // Animation loop
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      // Slow rotation for dreamy ambient feel
+      particles.rotation.y = elapsed * 0.03;
+      particles.rotation.x = elapsed * 0.015;
+
+      // Subtle mouse-based parallax
+      const targetRotX = (state.mouseY / window.innerHeight - 0.5) * 0.15;
+      const targetRotY = (state.mouseX / window.innerWidth - 0.5) * 0.15;
+      particles.rotation.x += (targetRotX - particles.rotation.x) * 0.02;
+      particles.rotation.y += (targetRotY - particles.rotation.y) * 0.02;
+
+      // Gentle wave motion on particles
+      const posArray = geometry.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        posArray[i3 + 1] += Math.sin(elapsed + i * 0.1) * 0.0005;
+      }
+      geometry.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  /* ================================================================
+     5. PARALLAX BALLOONS — Mouse-reactive floating balloons
+     ================================================================ */
+  function initParallaxBalloons() {
+    const balloons = document.querySelectorAll('.balloon');
+
+    document.addEventListener('mousemove', (e) => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const deltaX = (e.clientX - centerX) / centerX;
+      const deltaY = (e.clientY - centerY) / centerY;
+
+      balloons.forEach((balloon) => {
+        const speed = parseFloat(balloon.dataset.speed) || 0.03;
+        const moveX = deltaX * 40 * speed * 10;
+        const moveY = deltaY * 30 * speed * 10;
+        const rotateZ = deltaX * 5;
+
+        balloon.style.transform = `translate(${moveX}px, ${moveY}px) rotateZ(${rotateZ}deg)`;
+      });
+    });
+
+    // Touch parallax for mobile
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 0) return;
+      const touch = e.touches[0];
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const deltaX = (touch.clientX - centerX) / centerX;
+      const deltaY = (touch.clientY - centerY) / centerY;
+
+      balloons.forEach((balloon) => {
+        const speed = parseFloat(balloon.dataset.speed) || 0.03;
+        const moveX = deltaX * 25 * speed * 10;
+        const moveY = deltaY * 20 * speed * 10;
+        balloon.style.transform = `translate(${moveX}px, ${moveY}px)`;
+      });
+    }, { passive: true });
+  }
+
+  /* ================================================================
+     6. HERO ENTRANCE ANIMATION (GSAP)
+     ================================================================ */
+  function animateHeroEntrance() {
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+
+    tl.to('.line-1', {
+      opacity: 1,
+      y: 0,
+      duration: 1.2,
+    })
+    .to('.line-2', {
+      opacity: 1,
+      y: 0,
+      duration: 1.2,
+    }, '-=0.8')
+    .to('.line-3', {
+      opacity: 1,
+      y: 0,
+      duration: 1,
+    }, '-=0.6')
+    .to('.hero-subtitle', {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+    }, '-=0.4')
+    .to('.hero-pretitle', {
+      opacity: 1,
+      duration: 0.6,
+    }, '-=0.6');
+  }
+
+  /* ================================================================
+     7. SCROLL-TRIGGERED ANIMATIONS (GSAP ScrollTrigger)
+     ================================================================ */
+  function initScrollAnimations() {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Gallery Section header
+    gsap.from('.section-header', {
+      scrollTrigger: {
+        trigger: '.gallery-section',
+        start: 'top 80%',
+      },
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      ease: 'expo.out',
+    });
+
+    // Photo cards stagger animation
+    gsap.from('.photo-card', {
+      scrollTrigger: {
+        trigger: '.gallery-grid',
+        start: 'top 85%',
+      },
+      opacity: 0,
+      y: 60,
+      scale: 0.9,
+      duration: 0.8,
+      stagger: 0.15,
+      ease: 'expo.out',
+    });
+
+    // Wish card
+    gsap.from('.wish-card', {
+      scrollTrigger: {
+        trigger: '.wish-section',
+        start: 'top 75%',
+      },
+      opacity: 0,
+      y: 50,
+      scale: 0.95,
+      duration: 1,
+      ease: 'expo.out',
+    });
+
+    // Confetti button
+    gsap.from('.btn-confetti', {
+      scrollTrigger: {
+        trigger: '.btn-confetti',
+        start: 'top 90%',
+      },
+      opacity: 0,
+      scale: 0.5,
+      duration: 0.6,
+      ease: 'back.out(1.7)',
+    });
+  }
+
+  /* ================================================================
+     8. PHOTO CARD FLIP INTERACTION
+     ================================================================ */
+  function initPhotoCards() {
+    DOM.photoCards = document.querySelectorAll('.photo-card');
+
+    DOM.photoCards.forEach((card) => {
+      card.addEventListener('click', (e) => {
+        // Toggle flip class on click/tap
+        card.classList.toggle('flipped');
+
+        // GSAP subtle spring bounce on click
+        gsap.fromTo(card, {
+          scale: 0.95,
+        }, {
+          scale: 1,
+          duration: 0.4,
+          ease: 'back.out(1.7)',
+        });
+      });
+    });
+
+    // Swipe support for mobile photo cards
+    initMobileSwipe();
+  }
+
+  /* ================================================================
+     9. MOBILE SWIPE GESTURES FOR GALLERY
+     ================================================================ */
+  function initMobileSwipe() {
+    if (!window.matchMedia('(hover: none) and (pointer: coarse)').matches) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    DOM.photoCards.forEach((card) => {
+      card.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      card.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+
+        // If horizontal swipe > 50px and more horizontal than vertical
+        if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+          card.classList.toggle('flipped');
+          gsap.fromTo(card, { scale: 0.95 }, {
+            scale: 1,
+            duration: 0.4,
+            ease: 'back.out(1.7)',
+          });
+        }
+      }, { passive: true });
+    });
+  }
+
+  /* ================================================================
+     10. MUSIC PLAYER CONTROLS
+     ================================================================ */
+  function initMusicPlayer() {
+    const audio = DOM.bgMusic;
+    audio.volume = 0.7;
+
+    // Play/Pause toggle
+    DOM.playPauseBtn.addEventListener('click', togglePlayback);
+
+    // Volume control
+    DOM.volumeSlider.addEventListener('input', (e) => {
+      audio.volume = parseInt(e.target.value) / 100;
+    });
+
+    // Update UI when audio ends/plays
+    audio.addEventListener('play', () => {
+      state.isPlaying = true;
+      DOM.playIcon.style.display = 'none';
+      DOM.pauseIcon.style.display = 'block';
+      DOM.musicPlayer.classList.add('playing');
+    });
+
+    audio.addEventListener('pause', () => {
+      state.isPlaying = false;
+      DOM.playIcon.style.display = 'block';
+      DOM.pauseIcon.style.display = 'none';
+      DOM.musicPlayer.classList.remove('playing');
+    });
+  }
+
+  function togglePlayback() {
+    const audio = DOM.bgMusic;
+    if (audio.paused) {
+      audio.play().catch(() => {
+        console.log('Audio play was blocked. User interaction required.');
       });
     } else {
-      showToast('💌 Share this link with family & friends!');
+      audio.pause();
     }
   }
 
-  /* ==========================================================================
-     13. QUICK REACTION BUBBLES
-     ========================================================================== */
-  bubbleBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const reaction = btn.getAttribute('data-reaction');
-      const rect = btn.getBoundingClientRect();
-      
-      // Floating reaction explosion
-      for (let i = 0; i < 6; i++) {
-        const p = document.createElement('div');
-        p.className = 'flying-heart-particle';
-        p.textContent = reaction;
-        p.style.left = `${rect.left + rect.width / 2 + (Math.random() - 0.5) * 40}px`;
-        p.style.top = `${rect.top}px`;
-        flyingHeartsContainer.appendChild(p);
-        setTimeout(() => p.remove(), 1600);
+  /* ================================================================
+     11. CONFETTI CELEBRATION SYSTEM
+     ================================================================ */
+  function initConfetti() {
+    const canvas = DOM.confettiCanvas;
+    const ctx = canvas.getContext('2d');
+    let confettiPieces = [];
+    let animationId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Confetti piece class
+    class ConfettiPiece {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height - canvas.height;
+        this.size = Math.random() * 8 + 4;
+        this.speedY = Math.random() * 3 + 2;
+        this.speedX = (Math.random() - 0.5) * 2;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = (Math.random() - 0.5) * 10;
+        this.opacity = 1;
+        this.color = [
+          '#FF6B9D', '#C084FC', '#67E8F9', '#FCD34D',
+          '#34D399', '#A78BFA', '#F472B6', '#FB923C',
+        ][Math.floor(Math.random() * 8)];
+        this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
       }
-      
-      showToast(`${reaction} Sent reaction!`);
-    });
-  });
 
-  /* ==========================================================================
-     14. TOAST NOTIFICATION UTILITY
-     ========================================================================== */
-  let toastTimeout = null;
-  function showToast(msg) {
-    if (toastMessage) toastMessage.textContent = msg;
-    if (toastNotification) {
-      toastNotification.classList.add('show');
-      if (toastTimeout) clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => {
-        toastNotification.classList.remove('show');
-      }, 2600);
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+        this.rotation += this.rotationSpeed;
+        this.speedX += (Math.random() - 0.5) * 0.1;
+
+        // Fade out as it reaches bottom
+        if (this.y > canvas.height * 0.8) {
+          this.opacity -= 0.01;
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, this.opacity);
+        ctx.fillStyle = this.color;
+
+        if (this.shape === 'rect') {
+          ctx.fillRect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
     }
+
+    function launchConfetti() {
+      // Create burst of confetti
+      for (let i = 0; i < 150; i++) {
+        confettiPieces.push(new ConfettiPiece());
+      }
+
+      if (!animationId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      confettiPieces.forEach((piece) => {
+        piece.update();
+        piece.draw();
+      });
+
+      // Remove dead pieces
+      confettiPieces = confettiPieces.filter(
+        (p) => p.opacity > 0 && p.y < canvas.height + 50
+      );
+
+      if (confettiPieces.length > 0) {
+        animationId = requestAnimationFrame(animateConfetti);
+      } else {
+        animationId = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // Trigger confetti on button click
+    DOM.confettiBtn.addEventListener('click', () => {
+      launchConfetti();
+
+      // Button bounce animation
+      gsap.fromTo(DOM.confettiBtn, {
+        scale: 0.85,
+        rotation: -5,
+      }, {
+        scale: 1,
+        rotation: 0,
+        duration: 0.6,
+        ease: 'elastic.out(1, 0.3)',
+      });
+    });
   }
 
-  // Keyboard navigation support (Arrow Up / Down to scroll snaps)
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      reelContainer.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      reelContainer.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
-    }
-  });
+  /* ================================================================
+     12. DYNAMIC AUDIO VISUALIZER (Web Audio API)
+     ================================================================ */
+  function initAudioVisualizer() {
+    let audioContext;
+    let analyser;
+    let dataArray;
+    let isVisualizerActive = false;
 
-  // Initial trigger for top elements
-  setTimeout(() => {
-    const firstSectionAnims = sections[0].querySelectorAll('.animate-on-scroll');
-    firstSectionAnims.forEach(el => el.classList.add('visible'));
-  }, 300);
-});
+    function setupVisualizer() {
+      if (isVisualizerActive) return;
+
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 32;
+
+        const source = audioContext.createMediaElementSource(DOM.bgMusic);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        isVisualizerActive = true;
+
+        animateVisualizer();
+      } catch (err) {
+        console.log('Audio visualizer setup failed:', err.message);
+      }
+    }
+
+    function animateVisualizer() {
+      if (!isVisualizerActive) return;
+
+      requestAnimationFrame(animateVisualizer);
+
+      analyser.getByteFrequencyData(dataArray);
+
+      const bars = document.querySelectorAll('.vis-bar');
+      bars.forEach((bar, i) => {
+        const value = dataArray[i + 1] || 0;
+        const height = Math.max(4, (value / 255) * 24);
+        bar.style.height = height + 'px';
+      });
+    }
+
+    // Set up visualizer once audio starts playing
+    DOM.bgMusic.addEventListener('play', setupVisualizer, { once: true });
+  }
+
+  /* ================================================================
+     13. PASSWORD GATE — Verify Access Code
+     ================================================================ */
+  function initPasswordGate() {
+    const SECRET_CODE = '2708';
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordSubmitBtn = document.getElementById('passwordSubmitBtn');
+    const passwordError = document.getElementById('passwordError');
+    const passwordGate = document.getElementById('passwordGate');
+
+    function verifyPassword() {
+      const entered = passwordInput.value.trim();
+
+      if (entered === SECRET_CODE) {
+        // Success!
+        passwordInput.classList.remove('error');
+        passwordInput.classList.add('success');
+        passwordError.textContent = '';
+
+        // Hide password gate and show start button with animation
+        setTimeout(() => {
+          passwordGate.classList.add('hidden');
+          DOM.startBtn.style.display = 'inline-flex';
+
+          // Animate button entrance
+          gsap.fromTo(DOM.startBtn, {
+            opacity: 0,
+            scale: 0.7,
+            y: 20,
+          }, {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            duration: 0.6,
+            ease: 'back.out(1.7)',
+          });
+        }, 400);
+      } else {
+        // Wrong password
+        passwordInput.classList.add('error');
+        passwordError.textContent = 'Wrong code! Try again 🔒';
+        passwordError.classList.remove('shake');
+
+        // Force reflow to restart animation
+        void passwordError.offsetWidth;
+        passwordError.classList.add('shake');
+
+        // Clear input for retry
+        passwordInput.value = '';
+        passwordInput.focus();
+
+        // Remove error state after a moment
+        setTimeout(() => {
+          passwordInput.classList.remove('error');
+        }, 1500);
+      }
+    }
+
+    // Click unlock button
+    passwordSubmitBtn.addEventListener('click', verifyPassword);
+
+    // Enter key on input
+    passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        verifyPassword();
+      }
+    });
+  }
+
+  /* ================================================================
+     14. START OVERLAY — Entry Gate Handler
+     ================================================================ */
+  function initStartOverlay() {
+    DOM.startBtn.addEventListener('click', () => {
+      // Fade out overlay
+      DOM.startOverlay.classList.add('hidden');
+
+      // Show main content
+      DOM.mainContent.classList.remove('hidden');
+
+      // Show music player
+      setTimeout(() => {
+        DOM.musicPlayer.classList.add('visible');
+      }, 500);
+
+      // Start music
+      DOM.bgMusic.play().catch((err) => {
+        console.log('Audio autoplay blocked:', err.message);
+      });
+
+      // Initialize particles
+      initParticles();
+
+      // Animate hero entrance
+      setTimeout(animateHeroEntrance, 300);
+
+      // Initialize scroll animations after a short delay
+      setTimeout(initScrollAnimations, 800);
+    });
+  }
+
+  /* ================================================================
+     14. GRADIENT MESH BACKGROUND ANIMATION
+     ================================================================ */
+  function initGradientMesh() {
+    // Animate the body background gradient slowly
+    let angle = 0;
+    function updateGradient() {
+      angle += 0.1;
+      const x1 = 20 + Math.sin(angle * 0.01) * 15;
+      const y1 = 30 + Math.cos(angle * 0.015) * 15;
+      const x2 = 80 + Math.sin(angle * 0.012 + 2) * 15;
+      const y2 = 70 + Math.cos(angle * 0.01 + 1) * 15;
+
+      document.body.style.background = `
+        radial-gradient(600px circle at ${x1}% ${y1}%, rgba(192, 132, 252, 0.1), transparent 50%),
+        radial-gradient(600px circle at ${x2}% ${y2}%, rgba(255, 107, 157, 0.08), transparent 50%),
+        radial-gradient(400px circle at 50% 50%, rgba(103, 232, 249, 0.05), transparent 50%),
+        #0a0a0f
+      `;
+
+      requestAnimationFrame(updateGradient);
+    }
+    updateGradient();
+  }
+
+  /* ================================================================
+     15. INITIALIZATION — Master Setup Function
+     ================================================================ */
+  function init() {
+    initCursor();
+    initPasswordGate();
+    initStartOverlay();
+    initParallaxBalloons();
+    initPhotoCards();
+    initMusicPlayer();
+    initConfetti();
+    initAudioVisualizer();
+    initGradientMesh();
+  }
+
+  // Wait for DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

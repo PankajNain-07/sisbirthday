@@ -3,582 +3,334 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Happy Birthday! ✨ | The Celebration Reel</title>
-  <meta name="description" content="A special interactive birthday reel celebration made with love.">
-  
-  <!-- Google Fonts: Outfit (modern sans), Plus Jakarta Sans, and Dancing Script (for aesthetic cursive touches) -->
+  <title>Happy Birthday Didi! 🎂✨ | An Immersive Celebration</title>
+  <meta name="description" content="A stunning, immersive 3D birthday celebration crafted with love for the most amazing sister.">
+
+  <!-- Google Fonts: Inter (modern sans), Playfair Display (elegant serif), Dancing Script (handwritten) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
+  <!-- Three.js for 3D WebGL particles -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- GSAP for buttery smooth animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <!-- =================================================================
-       CANVAS LAYER FOR CONFETTI & FLOATING HEARTS PARTICLES
+       CUSTOM GLOWING CURSOR (Desktop Only)
   ================================================================== -->
-  <canvas id="confettiCanvas"></canvas>
-  <div id="flyingHeartsContainer"></div>
+  <div class="cursor-glow" id="cursorGlow"></div>
+  <div class="cursor-trail" id="cursorTrail"></div>
 
   <!-- =================================================================
-       BACKGROUND AUDIO ELEMENT
-       * TIP: Place your own MP3 file in the same folder and change the src below!
-       * If left as is, the site automatically uses a built-in Web Audio chime synth!
+       THREE.JS PARTICLE CANVAS (Full-screen background)
   ================================================================== -->
-  <!-- 
-    =================== [CUSTOMIZATION POINT: BACKGROUND AUDIO] ===================
-    Replace 'assets/birthday-track.mp3' with your audio file or online music link.
-    Example: src="my-sister-favorite-song.mp3"
-  -->
-  <audio id="bgMusic" loop preload="auto">
-    <source src="assets/birthday-track.mp3" type="audio/mpeg">
-  </audio>
+  <canvas id="particleCanvas"></canvas>
 
   <!-- =================================================================
-       ENTRY OVERLAY: "TAP TO START EXPERIENCE"
-       Solves browser autoplay restrictions & creates an exciting movie-like intro!
+       ENTRY OVERLAY: "Click to Begin the Celebration"
+       Solves browser autoplay restrictions & creates cinematic intro
   ================================================================== -->
-  <section id="startOverlay" class="start-overlay" aria-modal="true" role="dialog">
-    <div class="overlay-glass-card">
-      <div class="story-ring-preview">
-        <!-- Intro Avatar: Solo Portrait of Sister -->
-        <img src="assets/images/sister_solo.jpg" alt="Sister Profile Preview" class="intro-avatar">
-        <div class="live-badge">SPECIAL REEL</div>
+  <section id="startOverlay" class="start-overlay">
+    <div class="overlay-content">
+      <div class="intro-sparkle-ring">
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
+        <div class="sparkle-dot"></div>
       </div>
+      <div class="intro-icon">🎂</div>
+      <h2 class="intro-title">A Special Celebration Awaits</h2>
+      <p class="intro-subtitle">Turn up your volume for the best experience 🎧</p>
 
-      <div class="intro-text">
-        <span class="intro-sparkle">✨ 1 NEW EXCLUSIVE STORY ✨</span>
-        <!-- =================== [CUSTOMIZATION POINT: SISTER'S NAME] =================== -->
-        <h1 class="intro-title">For My Amazing Sister</h1>
-        <p class="intro-subtitle">A special birthday edition curated just for you. Turn up your volume for the best vibe! 🎧</p>
-      </div>
-
-      <!-- PASSWORD PROTECTION SECTION -->
-      <div id="passwordSection" class="password-section">
-        <div class="password-lock-icon">🔐</div>
-        <p class="password-label">Enter access code to continue:</p>
-        <input type="password" id="passwordInput" class="password-input" placeholder="Enter code" maxlength="8" autocomplete="off">
-        <button id="verifyPasswordBtn" class="btn-verify-password" aria-label="Verify Password">
-          <span>Verify</span>
+      <!-- Password Gate -->
+      <div class="password-gate" id="passwordGate">
+        <div class="password-icon">🔐</div>
+        <p class="password-label">Enter the secret code to unlock:</p>
+        <div class="password-input-wrapper">
+          <input type="password" id="passwordInput" class="password-input" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off">
+        </div>
+        <button id="passwordSubmitBtn" class="btn-password-submit" aria-label="Verify code">
+          <span>Unlock</span>
         </button>
-        <p id="passwordError" class="password-error"></p>
+        <p class="password-error" id="passwordError"></p>
       </div>
 
+      <!-- Start Button (hidden until password is correct) -->
       <button id="startBtn" class="btn-start" style="display: none;" aria-label="Start Birthday Experience">
-        <span class="btn-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+        <span class="btn-play-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
             <path d="M8 5v14l11-7z"/>
           </svg>
         </span>
-        <span class="btn-label">Tap to Open Reel</span>
-        <span class="pulse-ring"></span>
+        <span>Begin the Celebration</span>
+        <span class="btn-ripple"></span>
       </button>
-      
-      <div class="volume-hint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-        </svg>
-        <span>Music & sound effects included</span>
-      </div>
     </div>
   </section>
 
   <!-- =================================================================
-       MAIN REEL CONTAINER (Mobile-First Frame & Snap Scroll)
+       BACKGROUND AUDIO ELEMENT
+       * Replace 'assets/tu-hi-yaar-mera.mp3' with your audio file path
   ================================================================== -->
-  <main class="reel-wrapper">
-    <div class="reel-phone-frame" id="reelContainer">
+  <audio id="bgMusic" loop preload="auto">
+    <!-- =================== [INSERT YOUR MUSIC FILE PATH BELOW] =================== -->
+    <source src="assets/tu-hi-yaar-mera.mp3" type="audio/mpeg">
+    Your browser does not support audio.
+  </audio>
 
-      <!-- TOP FLOATING HEADER (Instagram Stories / Reels UI) -->
-      <header class="reel-top-bar">
-        <!-- Story Segment Progress Indicators -->
-        <div class="story-progress-bar">
-          <div class="progress-segment active" data-index="0"><div class="progress-fill"></div></div>
-          <div class="progress-segment" data-index="1"><div class="progress-fill"></div></div>
-          <div class="progress-segment" data-index="2"><div class="progress-fill"></div></div>
-          <div class="progress-segment" data-index="3"><div class="progress-fill"></div></div>
+  <!-- =================================================================
+       MAIN CONTENT WRAPPER
+  ================================================================== -->
+  <main id="mainContent" class="main-content hidden">
+
+    <!-- ============================================================
+         SECTION 1: HERO — 3D Parallax Birthday Banner
+    ============================================================= -->
+    <section class="hero-section" id="heroSection">
+      <!-- 3D Animated Balloons (CSS + JS Parallax) -->
+      <div class="balloons-container" id="balloonsContainer">
+        <div class="balloon balloon-1" data-speed="0.03">
+          <div class="balloon-body" style="--balloon-color: #FF6B9D;"></div>
+          <div class="balloon-string"></div>
         </div>
-
-        <div class="top-bar-content">
-          <div class="user-info-pill">
-            <div class="avatar-tiny-ring">
-              <!-- Top Bar Mini Avatar -->
-              <img src="assets/images/sister_solo.jpg" alt="Avatar" class="avatar-tiny">
-            </div>
-            <!-- Username & Badge -->
-            <span class="username">sister.vibes_</span>
-            <span class="verified-badge" title="Verified Queen">
-              <svg viewBox="0 0 24 24" fill="#0095f6" width="14" height="14">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-              </svg>
-            </span>
-            <span class="time-tag">• Birthday Edition</span>
-          </div>
-
-          <!-- AUDIO TOGGLE / EQUALIZER PILL -->
-          <button id="audioToggleBtn" class="audio-control-pill" aria-label="Toggle Sound">
-            <div class="equalizer-bars">
-              <span class="bar bar-1"></span>
-              <span class="bar bar-2"></span>
-              <span class="bar bar-3"></span>
-              <span class="bar bar-4"></span>
-            </div>
-            <span id="audioStatusText" class="audio-text">Audio On</span>
-          </button>
+        <div class="balloon balloon-2" data-speed="0.05">
+          <div class="balloon-body" style="--balloon-color: #C084FC;"></div>
+          <div class="balloon-string"></div>
         </div>
-      </header>
-
-      <!-- =============================================================
-           RIGHT SIDE ACTION BAR (Reels Interaction Icons)
-      ============================================================== -->
-      <aside class="reel-action-bar">
-        <!-- LIKE BUTTON -->
-        <div class="action-item" id="likeActionBtn">
-          <button class="action-btn icon-heart" aria-label="Like this reel">
-            <svg viewBox="0 0 24 24" class="svg-heart" width="28" height="28">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          </button>
-          <span class="action-count" id="likeCounter">100K</span>
+        <div class="balloon balloon-3" data-speed="0.02">
+          <div class="balloon-body" style="--balloon-color: #67E8F9;"></div>
+          <div class="balloon-string"></div>
         </div>
-
-        <!-- COMMENT BUTTON -->
-        <div class="action-item" id="commentActionBtn">
-          <button class="action-btn" aria-label="View birthday comments">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-            </svg>
-          </button>
-          <span class="action-count" id="commentCounter">24</span>
+        <div class="balloon balloon-4" data-speed="0.04">
+          <div class="balloon-body" style="--balloon-color: #FCD34D;"></div>
+          <div class="balloon-string"></div>
         </div>
-
-        <!-- SHARE / SEND BUTTON -->
-        <div class="action-item" id="shareActionBtn">
-          <button class="action-btn" aria-label="Share reel">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
-          <span class="action-count">Share</span>
+        <div class="balloon balloon-5" data-speed="0.06">
+          <div class="balloon-body" style="--balloon-color: #A78BFA;"></div>
+          <div class="balloon-string"></div>
         </div>
-
-        <!-- GIFT SHORTCUT BUTTON -->
-        <div class="action-item" id="giftActionBtn">
-          <button class="action-btn btn-gift-glow" aria-label="Open Birthday Surprise">
-            <span class="gift-emoji">🎁</span>
-          </button>
-          <span class="action-count">Surprise</span>
+        <div class="balloon balloon-6" data-speed="0.035">
+          <div class="balloon-body" style="--balloon-color: #34D399;"></div>
+          <div class="balloon-string"></div>
         </div>
-
-        <!-- ROTATING MUSIC VINYL DISC -->
-        <div class="action-item vinyl-item">
-          <div class="vinyl-disc spinning" id="vinylDisc">
-            <!-- Vinyl Center Photo -->
-            <img src="assets/images/sister_solo.jpg" alt="Music Cover" class="vinyl-art">
-          </div>
-          <div class="floating-music-notes">
-            <span class="music-note n1">🎵</span>
-            <span class="music-note n2">🎶</span>
-          </div>
-        </div>
-      </aside>
-
-      <!-- =============================================================
-           DOUBLE TAP HEART OVERLAY ANIMATION
-      ============================================================== -->
-      <div id="doubleTapHeart" class="double-tap-heart">
-        <svg viewBox="0 0 24 24" fill="#ff2a7a" width="100" height="100">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-        </svg>
       </div>
 
-      <!-- =============================================================
-           SCREEN 1: THE HOOK ("Happy Birthday Queen")
-      ============================================================== -->
-      <section class="reel-section screen-hook" id="screen1" data-index="0">
-        <!-- Ambient Background Glows -->
-        <div class="ambient-glow glow-top"></div>
-        <div class="ambient-glow glow-bottom"></div>
-
-        <div class="screen-content hook-content">
-          <!-- Top Floating Tag -->
-          <div class="trending-badge animate-fade-in">
-            <span class="fire-icon">🔥</span>
-            <span>#1 TRENDING SISTER TODAY</span>
+      <!-- Glassmorphism Welcome Banner -->
+      <div class="hero-banner glass-card" id="heroBanner">
+        <div class="banner-glow"></div>
+        <p class="hero-pretitle">✨ Today We Celebrate ✨</p>
+        <h1 class="hero-title">
+          <span class="title-line line-1">Happy</span>
+          <span class="title-line line-2">Birthday</span>
+          <span class="title-line line-3">Didi!</span>
+        </h1>
+        <p class="hero-subtitle">Wishing you a year filled with love, laughter, and all the happiness in the world 💖</p>
+        <div class="scroll-indicator">
+          <span>Scroll to explore</span>
+          <div class="scroll-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!-- Central Profile Avatar with Story Ring -->
-          <div class="avatar-hero-wrapper animate-scale-up">
-            <div class="insta-gradient-ring">
-              <div class="avatar-inner-border">
-                <!-- Main Birthday Hero Photo: Sister Solo Portrait -->
-                <img src="assets/images/sister_solo.jpg" alt="Birthday Sister" class="hero-avatar-img">
+    <!-- ============================================================
+         SECTION 2: MEMORY LANE — Interactive Photo Gallery
+    ============================================================= -->
+    <section class="gallery-section" id="gallerySection">
+      <div class="section-header">
+        <span class="section-tag">📸 Memory Lane</span>
+        <h2 class="section-title">Our Beautiful Moments</h2>
+        <p class="section-desc">Hover over each memory to read a heartfelt message</p>
+      </div>
+
+      <div class="gallery-grid" id="galleryGrid">
+        <!-- Photo Card 1: Sibling Together -->
+        <div class="photo-card" data-index="0">
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/images/family_mall.jpg" alt="Together at campus" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-label">Tap to Read 💌</span>
               </div>
             </div>
-            <div class="crown-badge" title="Queen of the Day">👑</div>
-          </div>
-
-          <!-- Main Typography & Greetings -->
-          <div class="greeting-block">
-            <p class="sub-greeting animate-slide-up">TODAY WE CELEBRATE</p>
-            <h1 class="main-title gradient-text heartbeat-text animate-slide-up">HAPPY BIRTHDAY!</h1>
-            <!-- Sister's Name / Salutation -->
-            <h2 class="sister-name cursive-text animate-slide-up">To My Gorgeous Sister ✨</h2>
-          </div>
-
-          <!-- Bottom Quote Tag -->
-          <div class="hook-card glass-panel animate-slide-up">
-            <p class="hook-quote">"Another year hotter, wiser, and forever the boss of the family!" 💃🎂</p>
-            <div class="music-ticker">
-              <span class="music-icon">🎵</span>
-              <div class="ticker-text-wrapper">
-                <span class="ticker-text">Now Playing: Celebrating You • The Greatest Sister Ever</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Animated Swipe Down Indicator -->
-          <div class="swipe-indicator animate-bounce">
-            <span class="swipe-text">Swipe Down For The Vibe</span>
-            <div class="chevron-down-anim">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
+            <div class="card-back glass-card">
+              <div class="message-icon">💛</div>
+              <h3>My Safe Place</h3>
+              <p>Didi, every moment spent with you feels like home. You're not just my sister — you're my comfort zone, my therapist, and my biggest cheerleader. I don't say it enough, but you mean the world to me. 🥺💛</p>
+              <span class="message-date">Forever Grateful</span>
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- =============================================================
-           SCREEN 2: THE VIBE (Stylized 3D Polaroid & Aesthetic Quote)
-      ============================================================== -->
-      <section class="reel-section screen-vibe" id="screen2" data-index="1">
-        <div class="ambient-glow glow-center"></div>
-
-        <div class="screen-content vibe-content">
-          <!-- Section Tag Header -->
-          <div class="section-tag animate-on-scroll">
-            <span class="tag-pill">✨ THE VIBE CHECK</span>
-          </div>
-
-          <!-- 3D Tilting Polaroid Showcase with Interactive Photo Cycling -->
-          <div class="polaroid-container animate-on-scroll" id="polaroidCard" title="Click to flip photo!">
-            <div class="tape-sticker"></div>
-            <div class="polaroid-card">
-              <div class="polaroid-image-wrapper">
-                <!-- Screen 2 Polaroid Photo -->
-                <img src="assets/images/sofa_lounge.jpg" alt="Vibe Picture" class="polaroid-img" id="polaroidMainImg">
-                <div class="polaroid-filter-overlay"></div>
-                <div class="polaroid-badge" id="polaroidBadge">PHOTO 1 OF 5</div>
-              </div>
-              <div class="polaroid-caption">
-                <span class="handwritten-caption" id="polaroidCaption">Main Character Energy Always 🌸</span>
-                <span class="date-stamp" id="polaroidTag">#BirthdayQueen</span>
+        <!-- Photo Card 2: Convocation -->
+        <div class="photo-card" data-index="1">
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/images/mall_chandelier.jpg" alt="Convocation day" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-label">Tap to Read 💌</span>
               </div>
             </div>
-            <div class="floating-sparkle-sticker s1">💖</div>
-            <div class="floating-sparkle-sticker s2">✨</div>
-          </div>
-
-          <!-- Interactive Photo Switch Dots -->
-          <div class="polaroid-switch-hint">
-            <span>👆 Tap photo to cycle all 5 memories</span>
-            <div class="polaroid-dots" id="polaroidDots">
-              <span class="p-dot active" data-idx="0"></span>
-              <span class="p-dot" data-idx="1"></span>
-              <span class="p-dot" data-idx="2"></span>
-              <span class="p-dot" data-idx="3"></span>
-              <span class="p-dot" data-idx="4"></span>
+            <div class="card-back glass-card">
+              <div class="message-icon">✨</div>
+              <h3>You Light Up Every Room</h3>
+              <p>There's something magical about your smile, Didi — it can turn the darkest day into the brightest one. Wherever you go, you leave a trail of happiness. The world doesn't deserve you, but I'm so lucky you're MY sister. 🌟👑</p>
+              <span class="message-date">Always Shining</span>
             </div>
-          </div>
-
-          <!-- Aesthetic Quote Box -->
-          <div class="quote-glass-card glass-panel animate-on-scroll">
-            <div class="quote-icon">❝</div>
-            <p class="quote-body">
-              "A sister is a little bit of childhood that can never be lost, your forever confidante, and your personal partner in crime."
-            </p>
-            <div class="quote-footer">
-              <span class="author-tag">— Always your #1 fan</span>
-              <div class="hearts-row">💖 ✨ 👑 🥂</div>
-            </div>
-          </div>
-
-          <div class="swipe-indicator mini-indicator animate-bounce">
-            <span>Swipe for Memories ⬇️</span>
           </div>
         </div>
-      </section>
 
-      <!-- =============================================================
-           SCREEN 3: THE MEMORIES (Timeline / Interactive Memory Cards)
-      ============================================================== -->
-      <section class="reel-section screen-memories" id="screen3" data-index="2">
-        <div class="ambient-glow glow-top-alt"></div>
-
-        <div class="screen-content memories-content">
-          <div class="section-tag animate-on-scroll">
-            <span class="tag-pill">📸 CORE MEMORIES & MOMENTS</span>
-          </div>
-
-          <h2 class="section-title gradient-text animate-on-scroll">Unforgettable Memories</h2>
-
-          <!-- Memories Stack / Timeline Cards with Real Photos -->
-          <div class="memories-scroll-deck animate-on-scroll">
-            
-            <!-- Memory Card 1: Mall Chandelier -->
-            <div class="memory-card glass-panel memory-card-with-photo">
-              <div class="memory-photo-thumb">
-                <img src="assets/images/mall_chandelier.jpg" alt="Chandelier Memory">
-              </div>
-              <div class="memory-card-body">
-                <div class="memory-header">
-                  <span class="memory-num">01</span>
-                  <span class="memory-badge">SPARKLING MOMENTS ✨</span>
-                </div>
-                <p class="memory-text">
-                  Under the grand chandeliers and brightest lights, making memories that shine forever!
-                </p>
-                <div class="memory-tags">
-                  <span>#MallVibes</span>
-                  <span>#SiblingGoals</span>
-                </div>
+        <!-- Photo Card 3: Sibling Selfie -->
+        <div class="photo-card" data-index="2">
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/images/night_fountain.jpg" alt="Sibling selfie" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-label">Tap to Read 💌</span>
               </div>
             </div>
-
-            <!-- Memory Card 2: Night Fountain -->
-            <div class="memory-card glass-panel memory-card-with-photo highlight-border">
-              <div class="memory-photo-thumb">
-                <img src="assets/images/night_fountain.jpg" alt="Night Fountain Memory">
-              </div>
-              <div class="memory-card-body">
-                <div class="memory-header">
-                  <span class="memory-num">02</span>
-                  <span class="memory-badge">NIGHT VIBES 🌙</span>
-                </div>
-                <p class="memory-text">
-                  Late night strolls by the illuminated fountains, talking and laughing non-stop.
-                </p>
-                <div class="memory-tags">
-                  <span>#NightAdventures</span>
-                  <span>#Unbreakable</span>
-                </div>
-              </div>
+            <div class="card-back glass-card">
+              <div class="message-icon">🌙</div>
+              <h3>Through Every Storm</h3>
+              <p>Remember those late-night talks when I was stressed and you stayed up just to make me feel okay? You never let me face anything alone. You're the strongest person I know, and I promise to always be there for you too — no matter what. 💜🌙</p>
+              <span class="message-date">Unbreakable Bond</span>
             </div>
-
-            <!-- Memory Card 3: Family Mall -->
-            <div class="memory-card glass-panel memory-card-with-photo">
-              <div class="memory-photo-thumb">
-                <img src="assets/images/family_mall.jpg" alt="Family Memory">
-              </div>
-              <div class="memory-card-body">
-                <div class="memory-header">
-                  <span class="memory-num">03</span>
-                  <span class="memory-badge">FAMILY FOREVER 💖</span>
-                </div>
-                <p class="memory-text">
-                  Surrounded by unconditional love, warmth, and the people who cherish you the most.
-                </p>
-                <div class="memory-tags">
-                  <span>#Blessed</span>
-                  <span>#FamilyLove</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Memory Card 4: Interactive Secret Compliment Card -->
-            <div class="memory-card secret-scratch-card glass-panel" id="secretCard">
-              <div class="secret-overlay" id="secretOverlay">
-                <span class="lock-icon">🔒</span>
-                <span class="lock-text">TAP TO REVEAL SIBLING TRUTH</span>
-              </div>
-              <div class="secret-content">
-                <span class="secret-tag">CONFESSION 💌</span>
-                <p class="secret-text">"You truly inspire me every single day. I couldn't have asked for a better sister!"</p>
-                <span class="sparkle-stamp">BEST SISTER AWARD 🏆</span>
-              </div>
-            </div>
-
-          </div>
-
-          <div class="swipe-indicator mini-indicator animate-bounce">
-            <span>Swipe for Grand Reveal ⬇️</span>
           </div>
         </div>
-      </section>
 
-      <!-- =============================================================
-           SCREEN 4: THE REVEAL (Grand Finale, Wish Letter & Confetti Surprise)
-      ============================================================== -->
-      <section class="reel-section screen-reveal" id="screen4" data-index="3">
-        <div class="ambient-glow glow-finale"></div>
-
-        <div class="screen-content reveal-content">
-          <!-- Celebration Badge -->
-          <div class="grand-badge animate-on-scroll">
-            <span>🎉 THE GRAND FINALE 🎉</span>
-          </div>
-
-          <!-- Heartfelt Birthday Card -->
-          <div class="wish-card glass-panel animate-on-scroll">
-            <div class="wish-card-decor">🎂 🎈 ✨</div>
-            <!-- =================== [CUSTOMIZATION POINT: SISTER'S NAME] =================== -->
-            <h2 class="wish-headline cursive-text">Dearest Sister,</h2>
-            
-            <!-- =================== [CUSTOMIZATION POINT: YOUR PERSONAL WISH] =================== -->
-            <div class="wish-letter-body">
-              <p>May this year bring you boundless happiness, thrilling adventures, huge success, and all the love you deserve!</p>
-              <p>Keep shining bright, laughing loud, and being the incredible, one-of-a-kind person you are.</p>
+        <!-- Photo Card 4: With Mom -->
+        <div class="photo-card" data-index="3">
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/images/sofa_lounge.jpg" alt="With Mom at ceremony" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-label">Tap to Read 💌</span>
+              </div>
             </div>
-
-            <div class="signature-row">
-              <span class="sign-text">With all my love & best wishes,</span>
-              <!-- =================== [CUSTOMIZATION POINT: YOUR NAME] =================== -->
-              <span class="sign-name gradient-text">Your Favorite Sibling 💖</span>
+            <div class="card-back glass-card">
+              <div class="message-icon">💖</div>
+              <h3>The Heart of Our Family</h3>
+              <p>You hold our family together with your love, your care, and your selfless nature. Mummy, Papa, and I — we're all so blessed to have you. You carry so much grace in your heart, Didi. Never forget how special you truly are. 💕🏠</p>
+              <span class="message-date">Our Everything</span>
             </div>
-          </div>
-
-          <!-- BIG SURPRISE GIFT BUTTON (Triggers Confetti Blast + Modal) -->
-          <div class="gift-cta-container animate-on-scroll">
-            <button id="tapForGiftBtn" class="btn-gift-explosion" aria-label="Tap to unlock birthday gift">
-              <span class="gift-glow-effect"></span>
-              <span class="gift-btn-icon">🎁</span>
-              <span class="gift-btn-text">TAP FOR BIRTHDAY SURPRISE</span>
-              <span class="gift-stars">✨</span>
-            </button>
-            <span class="gift-subtext">Click to trigger confetti celebration! 🎊</span>
-          </div>
-
-          <!-- Quick Interactive Reactions -->
-          <div class="reaction-bubbles-bar animate-on-scroll">
-            <button class="bubble-btn" data-reaction="❤️">❤️ Love</button>
-            <button class="bubble-btn" data-reaction="🥳">🥳 Party</button>
-            <button class="bubble-btn" data-reaction="👑">👑 Queen</button>
-            <button class="bubble-btn" data-reaction="🎂">🎂 Cake</button>
-            <button class="bubble-btn" data-reaction="🔥">🔥 Lit</button>
-          </div>
-
-          <div class="footer-credit">
-            <span>Designed with ❤️ just for you • Happy Birthday!</span>
           </div>
         </div>
-      </section>
 
-    </div>
+        <!-- Photo Card 5: Temple Visit -->
+        <div class="photo-card" data-index="4">
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/images/sister_solo.jpg" alt="Temple visit together" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-label">Tap to Read 💌</span>
+              </div>
+            </div>
+            <div class="card-back glass-card">
+              <div class="message-icon">🙏</div>
+              <h3>My Prayer For You</h3>
+              <p>Every time I close my eyes and pray, your happiness is the first thing I ask for. I pray God gives you everything you've ever dreamed of — and so much more. You deserve a life as beautiful as your soul, Didi. Happy Birthday, my forever person. 🌺🤲</p>
+              <span class="message-date">With All My Heart</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SECTION 3: BIRTHDAY WISH — Heartfelt Letter
+    ============================================================= -->
+    <section class="wish-section" id="wishSection">
+      <div class="wish-card glass-card" id="wishCard">
+        <div class="wish-decoration">
+          <span>🎂</span>
+          <span>🎈</span>
+          <span>✨</span>
+          <span>🎁</span>
+          <span>🎉</span>
+        </div>
+        <h2 class="wish-heading">Dearest Didi,</h2>
+        <div class="wish-body">
+          <p>On your special day, I want you to know how much you mean to me. You've always been my guiding star, my partner in crime, and the most amazing sister anyone could ask for.</p>
+          <p>May this birthday bring you endless joy, success in everything you do, and all the beautiful things life has to offer. You deserve nothing but the absolute best!</p>
+          <p>Keep shining, keep laughing, and keep being the incredible person you are. The world is better with you in it. 🌟</p>
+        </div>
+        <div class="wish-signature">
+          <span class="sign-label">With all my love,</span>
+          <span class="sign-name">Your Favourite Brother 💖</span>
+        </div>
+      </div>
+
+      <!-- Confetti Trigger Button -->
+      <button id="confettiBtn" class="btn-confetti" aria-label="Trigger confetti celebration">
+        <span class="confetti-icon">🎊</span>
+        <span>Celebrate!</span>
+      </button>
+    </section>
+
+    <!-- ============================================================
+         SECTION 4: FOOTER
+    ============================================================= -->
+    <footer class="site-footer">
+      <p>Made with ❤️ just for you • Happy Birthday Didi! 🎂</p>
+      <p class="footer-song">🎵 Now Playing: Tu Hi Yaar Mera — Pati Patni Aur Woh</p>
+    </footer>
   </main>
 
   <!-- =================================================================
-       MODAL 1: SURPRISE GIFT BOX POPUP
+       MUSIC PLAYER — Floating Minimalist Player with Visualizer
   ================================================================== -->
-  <div id="giftModal" class="app-modal" aria-hidden="true" role="dialog">
-    <div class="modal-backdrop" id="giftModalBackdrop"></div>
-    <div class="modal-dialog glass-panel gift-dialog">
-      <button class="modal-close-btn" id="closeGiftModalBtn" aria-label="Close Modal">&times;</button>
-      
-      <div class="gift-box-animation">
-        <div class="gift-emoji-large">🎁</div>
-        <div class="gift-burst-ring"></div>
-      </div>
-
-      <h3 class="modal-title gradient-text">Special Birthday Voucher!</h3>
-      <p class="modal-subtitle">You have unlocked an exclusive VIP Sister Privilege Card:</p>
-
-      <!-- =================== [CUSTOMIZATION POINT: GIFT VOUCHER PERKS] =================== -->
-      <div class="gift-voucher-card">
-        <div class="voucher-header">
-          <span>GOLDEN TICKET 🎟️</span>
-          <span>NO EXPIRY</span>
-        </div>
-        <ul class="voucher-perks">
-          <li>☕ <strong>1x Unlimited Coffee / Boba Treat</strong> on me</li>
-          <li>🎬 <strong>1x Movie Night & Snacks</strong> of your choice</li>
-          <li>🌟 <strong>1x Sibling Wish Granted</strong> (No questions asked!)</li>
-          <li>🤗 <strong>Unlimited Hugs & Support</strong> forever and always</li>
-        </ul>
-        <div class="voucher-barcode">||| | |||| | ||| || |||||| | |||</div>
-      </div>
-
-      <button class="btn-claim" id="claimGiftBtn">
-        <span>Claim & Celebrate 🥳</span>
+  <div class="music-player" id="musicPlayer">
+    <div class="visualizer-bars" id="visualizerBars">
+      <span class="vis-bar"></span>
+      <span class="vis-bar"></span>
+      <span class="vis-bar"></span>
+      <span class="vis-bar"></span>
+      <span class="vis-bar"></span>
+    </div>
+    <div class="player-controls">
+      <button id="playPauseBtn" class="player-btn" aria-label="Play/Pause music">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="display:none;">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
       </button>
+      <div class="player-info">
+        <span class="song-name">Tu Hi Yaar Mera</span>
+        <span class="song-artist">Pati Patni Aur Woh</span>
+      </div>
+      <div class="volume-control">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="70" aria-label="Volume">
+      </div>
     </div>
   </div>
 
   <!-- =================================================================
-       MODAL 2: INSTAGRAM-STYLE COMMENTS DRAWER
+       CONFETTI CANVAS OVERLAY
   ================================================================== -->
-  <div id="commentsModal" class="app-modal comments-drawer" aria-hidden="true" role="dialog">
-    <div class="modal-backdrop" id="commentsModalBackdrop"></div>
-    <div class="modal-dialog comments-dialog">
-      <div class="drawer-handle"></div>
-      <div class="comments-header">
-        <h3>Comments (24)</h3>
-        <button class="modal-close-btn" id="closeCommentsModalBtn" aria-label="Close Comments">&times;</button>
-      </div>
+  <canvas id="confettiCanvas"></canvas>
 
-      <!-- Scrollable comments list -->
-      <div class="comments-list" id="commentsList">
-        <!-- Comment 1 -->
-        <div class="comment-item">
-          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80" alt="User" class="comment-avatar">
-          <div class="comment-content">
-            <div class="comment-user">
-              <strong>bestie_sarah</strong>
-              <span class="comment-time">2h</span>
-            </div>
-            <p class="comment-body">HAPPY BIRTHDAY QUEEN!! 👑 You look so stunning! Have the absolute best day! 🎉</p>
-          </div>
-          <button class="comment-like-btn">❤️</button>
-        </div>
-
-        <!-- Comment 2 -->
-        <div class="comment-item">
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80" alt="User" class="comment-avatar">
-          <div class="comment-content">
-            <div class="comment-user">
-              <strong>alex_vibes</strong>
-              <span class="comment-time">4h</span>
-            </div>
-            <p class="comment-body">Birthday girl shining as always! Keep rocking! 🎂✨🥂</p>
-          </div>
-          <button class="comment-like-btn">❤️</button>
-        </div>
-
-        <!-- Comment 3 -->
-        <div class="comment-item">
-          <img src="assets/images/family_mall.jpg" alt="User" class="comment-avatar">
-          <div class="comment-content">
-            <div class="comment-user">
-              <strong>family_first</strong>
-              <span class="comment-time">5h</span>
-            </div>
-            <p class="comment-body">Proud of you always! Wishing you infinite joy and blessings today! 💖💐</p>
-          </div>
-          <button class="comment-like-btn">❤️</button>
-        </div>
-      </div>
-
-      <!-- Add new comment form -->
-      <form class="comment-input-bar" id="commentForm">
-        <input type="text" id="newCommentInput" placeholder="Add a sweet birthday wish..." required autocomplete="off">
-        <button type="submit" class="btn-post-comment">Post</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- =================================================================
-       TOAST NOTIFICATION (For Shares, Copies & Likes)
-  ================================================================== -->
-  <div id="toastNotification" class="toast-notification" role="status" aria-live="polite">
-    <span class="toast-icon">✨</span>
-    <span class="toast-message" id="toastMessage">Link copied to clipboard!</span>
-  </div>
-
-  <!-- Main JavaScript File -->
+  <!-- Main JavaScript -->
   <script src="script.js"></script>
 </body>
 </html>
