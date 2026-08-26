@@ -59,6 +59,9 @@
     mouseX: 0,
     mouseY: 0,
     particlesInitialized: false,
+    synthAudioContext: null,
+    synthTimer: null,
+    synthNoteIndex: 0,
   };
 
   /* ================================================================
@@ -419,12 +422,75 @@
 
   function togglePlayback() {
     const audio = DOM.bgMusic;
+    if (state.synthTimer) {
+      stopSynthMusic();
+      state.isPlaying = false;
+      DOM.playIcon.style.display = 'block';
+      DOM.pauseIcon.style.display = 'none';
+      DOM.musicPlayer.classList.remove('playing');
+      return;
+    }
+
     if (audio.paused) {
       audio.play().catch(() => {
-        console.log('Audio play was blocked. User interaction required.');
+        startSynthMusic();
       });
     } else {
       audio.pause();
+      stopSynthMusic();
+    }
+  }
+
+  function startSynthMusic() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    if (!state.synthAudioContext) {
+      state.synthAudioContext = new AudioContext();
+    }
+
+    const context = state.synthAudioContext;
+    if (context.state === 'suspended') context.resume();
+    if (state.synthTimer) return;
+
+    const melody = [
+      261.63, 261.63, 293.66, 261.63, 349.23, 329.63,
+      261.63, 261.63, 293.66, 261.63, 392.00, 349.23,
+    ];
+
+    const playNote = () => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const now = context.currentTime;
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = melody[state.synthNoteIndex];
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.5);
+
+      state.synthNoteIndex = (state.synthNoteIndex + 1) % melody.length;
+    };
+
+    playNote();
+    state.synthTimer = setInterval(playNote, 500);
+    state.isPlaying = true;
+    DOM.playIcon.style.display = 'none';
+    DOM.pauseIcon.style.display = 'block';
+    DOM.musicPlayer.classList.add('playing');
+  }
+
+  function stopSynthMusic() {
+    if (state.synthTimer) {
+      clearInterval(state.synthTimer);
+      state.synthTimer = null;
+    }
+    if (state.synthAudioContext && state.synthAudioContext.state === 'running') {
+      state.synthAudioContext.suspend();
     }
   }
 
@@ -678,9 +744,7 @@
       }, 500);
 
       // Start music
-      DOM.bgMusic.play().catch((err) => {
-        console.log('Audio autoplay blocked:', err.message);
-      });
+      DOM.bgMusic.play().catch(() => startSynthMusic());
 
       // Initialize particles
       initParticles();
